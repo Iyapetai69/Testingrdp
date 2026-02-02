@@ -41,37 +41,6 @@ jobs:
           Invoke-WebRequest $url -OutFile $installer
           Start-Process $installer -ArgumentList "/quiet" -Wait
 
-      - name: Configure MT5 Demo Login
-        run: |
-          $login  = "102323993"
-          $pass   = "-xPu1wMx"
-          $server = "MetaQuotes-Demo"
-
-          $config = @"
-[Common]
-Login=$login
-Password=$pass
-Server=$server
-AutoLogin=1
-"@
-
-          $path = "$env:APPDATA\MetaQuotes\Terminal"
-          $term = Get-ChildItem $path -Directory | Select-Object -First 1
-
-          if (-not $term) {
-            Write-Error "MT5 terminal folder not found"
-            exit 1
-          }
-
-          $cfgPath = Join-Path $term.FullName "config\common.ini"
-          New-Item -ItemType Directory -Force (Split-Path $cfgPath)
-          $config | Set-Content -Encoding ASCII $cfgPath
-
-      - name: Start MetaTrader 5
-        run: |
-          $exe = Get-ChildItem "C:\Program Files" -Recurse -Filter terminal64.exe | Select-Object -First 1
-          Start-Process $exe.FullName
-
       - name: Info
         run: |
           Write-Host "Buka https://remotedesktop.google.com"
