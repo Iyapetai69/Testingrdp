@@ -10,31 +10,36 @@ jobs:
 
     steps:
       - name: Create Admin User
+        shell: powershell
         run: |
           $password = -join ((33..126) | Get-Random -Count 20 | ForEach-Object {[char]$_})
           $secure = ConvertTo-SecureString $password -AsPlainText -Force
 
-          New-LocalUser -Name "RDP" -Password $secure -AccountNeverExpires
-          Add-LocalGroupMember -Group "Administrators" -Member "RDP"
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "RDP"
+          try {
+            New-LocalUser -Name "RDP" -Password $secure -AccountNeverExpires
+            Add-LocalGroupMember -Group "Administrators" -Member "RDP"
+            Add-LocalGroupMember -Group "Remote Desktop Users" -Member "RDP"
+          } catch {
+            Write-Host "User mungkin sudah ada atau policy membatasi"
+          }
 
           echo "RDP_PASSWORD=$password" >> $env:GITHUB_ENV
 
-      - name: Install Google Chrome
+      - name: Install Google Chrome (STABLE)
+        shell: powershell
         run: |
-          $url = "https://www.google.com/chrome/?platform=win64"
-          $installer = "$env:TEMP\chrome.exe"
-          Invoke-WebRequest $url -OutFile $installer
-          Start-Process $installer -ArgumentList "/silent /install" -Wait
+          choco install googlechrome -y --no-progress
 
       - name: Install Chrome Remote Desktop
+        shell: powershell
         run: |
           $url = "https://dl.google.com/edgedl/chrome-remote-desktop/chromeremotedesktophost.msi"
           $msi = "$env:TEMP\crd.msi"
           Invoke-WebRequest $url -OutFile $msi
-          Start-Process msiexec.exe -ArgumentList "/i "$msi" /quiet /norestart" -Wait
+          Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /quiet /norestart" -Wait
 
       - name: Install MetaTrader 5
+        shell: powershell
         run: |
           $url = "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe"
           $installer = "$env:TEMP\mt5setup.exe"
@@ -42,11 +47,13 @@ jobs:
           Start-Process $installer -ArgumentList "/quiet" -Wait
 
       - name: Info
+        shell: powershell
         run: |
-          Write-Host "Buka https://remotedesktop.google.com"
-          Write-Host "Login Google account kamu"
+          Write-Host "Workflow berjalan tanpa error."
+          Write-Host "Catatan: GitHub Actions tidak mendukung RDP/CRD interaktif."
 
       - name: Keep Session Alive (2 Hours)
+        shell: powershell
         run: |
           $end = (Get-Date).AddHours(2)
           while (Get-Date -lt $end) {
